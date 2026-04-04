@@ -1,0 +1,27 @@
+# Build
+build/
+cmake-build-*/
+out/
+
+# IDE
+.vs/
+.idea/
+*.suo
+*.user
+*.sln
+*.vcxproj*
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Binaries
+*.exe
+*.dll
+*.obj
+*.o
+*.a
+*.lib
+*.pdb
+*.ilk
+*.exp
