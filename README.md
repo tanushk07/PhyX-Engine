@@ -1,5 +1,7 @@
 # phyX
 
+![phyX Demo](Phyx-ezgif.com-crop.gif)
+
 A lightweight 3D physics engine built from scratch in C++17.  
 Implements core rigid-body dynamics, collision detection primitives, and real-time debug visualization using [Raylib](https://www.raylib.com/).
 
