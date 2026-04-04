@@ -14,31 +14,41 @@ int main()
     PhysicsEngine engine;
     float bounceTimer = 0.0f;
 
-    // Rigidbody sphere (gravity + bounce demo) — center of the scene
-    BoundingSphere physicsSphere{Vec3{0, 8, 0}, 0.6f};
+    // Ground plane at y = 0 (the ONE plane for everything)
+    PlaneCollider ground{Vec3{0, 1, 0}, 0};
+
+    // Rigidbody sphere (gravity + bounce) — far left
+    BoundingSphere physicsSphere{Vec3{-20, 8, 0}, 0.6f};
     RigidBody physicsBody{physicsSphere.getPosition(), 2.0f, 0.82f};
     engine.addRigidBody(&physicsBody);
 
-    // Ground plane at y = 0
-    PlaneCollider ground{Vec3{0, 1, 0}, 0};
+    // --- Test 1: Sphere vs Sphere (x = -10) ---
+    Vec3 sphereA{-12, 1.5f, 0};
+    Vec3 sphereB{-8, 1.5f, 0};
 
-    // Sphere vs Sphere pair — left side
-    Vec3 sphereA{-6, 1, 0};
-    Vec3 sphereB{-4, 1, 0};
+    // --- Test 2: AABB vs AABB (x = 0) ---
+    Vec3 boxAMin{-2, 0.5f, -1};
+    Vec3 boxAMax{0, 2.5f, 1};
+    Vec3 boxBMin{2, 0.5f, -1};
+    Vec3 boxBMax{4, 2.5f, 1};
 
-    // AABB vs AABB pair — right side
-    Vec3 boxAMin{4, 0, -1};
-    Vec3 boxAMax{6, 2, 1};
-    Vec3 boxBMin{5, 0, -1};
-    Vec3 boxBMax{7, 2, 1};
+    // --- Test 3: Sphere vs AABB (x = 10) ---
+    Vec3 sphereC{8, 1.5f, 0};
+    Vec3 boxCMin{11, 0.5f, -1};
+    Vec3 boxCMax{13, 2.5f, 1};
+
+    // --- Test 4: Plane vs Sphere (x = 20) — sphere bobs vertically into ground ---
+
+    // --- Test 5: Plane vs AABB (x = 30) — AABB bobs vertically into ground ---
 
     while (!visualizer.ShouldClose()) {
         visualizer.UpdateCamera();
 
         float dt = GetFrameTime();
         if (dt > 0.1f) dt = 0.1f;
+        float t = (float)GetTime();
 
-        // --- Physics step ---
+        // --- Physics step (rigidbody bounce) ---
         engine.step(dt);
         physicsSphere = BoundingSphere{physicsBody.Position, physicsSphere.getRadius()};
 
@@ -49,9 +59,8 @@ int main()
 
         physicsSphere = BoundingSphere{physicsBody.Position, physicsSphere.getRadius()};
 
-        // Animate sphere pair (oscillate toward each other)
-        float t = (float)GetTime();
-        sphereB.x = -4.0f + 1.8f * sinf(t * 1.5f);
+        // === Test 1: Sphere vs Sphere ===
+        sphereB.x = -8.0f + 2.5f * sinf(t * 1.5f);
 
         IntersectionData sphereResult;
         engine.TestSphereVsSphere(
@@ -60,10 +69,10 @@ int main()
             sphereResult
         );
 
-        // Animate AABB pair (slide toward each other)
-        float boxShift = 2.5f * sinf(t * 1.2f);
-        boxBMin = Vec3{5.0f + boxShift, 0, -1};
-        boxBMax = Vec3{7.0f + boxShift, 2, 1};
+        // === Test 2: AABB vs AABB ===
+        float boxShift = 3.0f * sinf(t * 1.2f);
+        boxBMin = Vec3{2.0f + boxShift, 0.5f, -1};
+        boxBMax = Vec3{4.0f + boxShift, 2.5f, 1};
 
         IntersectionData aabbResult;
         engine.TestAABBvsAABB(
@@ -72,26 +81,73 @@ int main()
             aabbResult
         );
 
+        // === Test 3: Sphere vs AABB ===
+        sphereC.x = 8.0f + 3.0f * sinf(t * 1.3f);
+
+        IntersectionData sphereAABBResult;
+        engine.TestSphereVsAABB(
+            BoundingSphere{sphereC, 0.8f},
+            AABB{boxCMin, boxCMax},
+            sphereAABBResult
+        );
+
+        // === Test 4: Plane vs Sphere — sphere bobs down into the ground plane ===
+        float sphereY4 = 1.5f + 1.8f * sinf(t * 1.4f);
+        Vec3 planeTestSphere{20, sphereY4, 0};
+
+        IntersectionData planeSphereResult;
+        engine.TestPlaneVsSphere(
+            ground,
+            BoundingSphere{planeTestSphere, 0.8f},
+            planeSphereResult
+        );
+
+        // === Test 5: Plane vs AABB — box bobs down into the ground plane ===
+        float boxY5 = 1.2f + 1.5f * sinf(t * 1.1f);
+        Vec3 boxEMin{29, boxY5 - 1.0f, -1};
+        Vec3 boxEMax{31, boxY5 + 1.0f, 1};
+
+        IntersectionData planeAABBResult;
+        engine.TestPlaneVsAABB(
+            ground,
+            AABB{boxEMin, boxEMax},
+            planeAABBResult
+        );
+
         // --- Rendering ---
         visualizer.BeginRender();
 
-        // Physics sphere
+        // Rigidbody bounce sphere (x = -20)
         visualizer.DrawSphereDebug(
             physicsSphere.getPosition(), physicsSphere.getRadius(), PURPLE);
 
-        // Sphere vs Sphere
+        // Test 1: Sphere vs Sphere (x = -10)
         Color colA = sphereResult.hasCollided ? RED : GREEN;
         Color colB = sphereResult.hasCollided ? RED : BLUE;
         visualizer.DrawSphereDebug(sphereA, 0.8f, colA);
         visualizer.DrawSphereDebug(sphereB, 0.8f, colB);
 
-        // AABB vs AABB
+        // Test 2: AABB vs AABB (x = 0)
         Color boxColA = aabbResult.hasCollided ? ORANGE : LIME;
         Color boxColB = aabbResult.hasCollided ? ORANGE : PINK;
         visualizer.DrawAABBDebug(boxAMin, boxAMax, boxColA);
         visualizer.DrawAABBDebug(boxBMin, boxBMax, boxColB);
 
-        // Ground
+        // Test 3: Sphere vs AABB (x = 10)
+        Color sphAABBCol = sphereAABBResult.hasCollided ? RED : SKYBLUE;
+        Color boxAABBCol = sphereAABBResult.hasCollided ? RED : YELLOW;
+        visualizer.DrawSphereDebug(sphereC, 0.8f, sphAABBCol);
+        visualizer.DrawAABBDebug(boxCMin, boxCMax, boxAABBCol);
+
+        // Test 4: Plane vs Sphere (x = 20)
+        Color planeSphCol = planeSphereResult.hasCollided ? RED : MAGENTA;
+        visualizer.DrawSphereDebug(planeTestSphere, 0.8f, planeSphCol);
+
+        // Test 5: Plane vs AABB (x = 30)
+        Color planeBoxCol = planeAABBResult.hasCollided ? RED : BEIGE;
+        visualizer.DrawAABBDebug(boxEMin, boxEMax, planeBoxCol);
+
+        // Ground plane
         visualizer.DrawPlaneDebug(Vec3{0, 0, 0}, Vec3{0, 1, 0}, 80.0f, DARKGRAY);
 
         visualizer.EndRender();
@@ -99,15 +155,31 @@ int main()
         // --- HUD ---
         visualizer.DrawFPS(10, 10);
 
-        if (sphereResult.hasCollided)
-            visualizer.DrawText("SPHERE vs SPHERE", 10, 40, 20, MAROON);
-
-        if (aabbResult.hasCollided)
-            visualizer.DrawText("AABB vs AABB", 10, 65, 20, ORANGE);
-
+        int hudY = 40;
         if (bounceTimer > 0.0f) {
-            visualizer.DrawText("RIGIDBODY BOUNCE", 10, 90, 20, PURPLE);
+            visualizer.DrawText("RIGIDBODY BOUNCE", 10, hudY, 20, PURPLE);
             bounceTimer -= dt;
+            hudY += 25;
+        }
+        if (sphereResult.hasCollided) {
+            visualizer.DrawText("SPHERE vs SPHERE", 10, hudY, 20, MAROON);
+            hudY += 25;
+        }
+        if (aabbResult.hasCollided) {
+            visualizer.DrawText("AABB vs AABB", 10, hudY, 20, ORANGE);
+            hudY += 25;
+        }
+        if (sphereAABBResult.hasCollided) {
+            visualizer.DrawText("SPHERE vs AABB", 10, hudY, 20, RED);
+            hudY += 25;
+        }
+        if (planeSphereResult.hasCollided) {
+            visualizer.DrawText("PLANE vs SPHERE", 10, hudY, 20, MAGENTA);
+            hudY += 25;
+        }
+        if (planeAABBResult.hasCollided) {
+            visualizer.DrawText("PLANE vs AABB", 10, hudY, 20, GOLD);
+            hudY += 25;
         }
     }
 

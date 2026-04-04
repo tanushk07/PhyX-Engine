@@ -45,3 +45,21 @@ bool PhysicsEngine::TestAABBvsAABB(AABB a1, AABB a2, IntersectionData& data)
     a1.Intersect(a2, data);
     return data.hasCollided;
 }
+
+bool PhysicsEngine::TestSphereVsAABB(BoundingSphere sphere, AABB aabb, IntersectionData& data)
+{
+    sphere.IntersectWithAABB(aabb, data);
+    return data.hasCollided;
+}
+
+bool PhysicsEngine::TestPlaneVsSphere(PlaneCollider plane, BoundingSphere sphere, IntersectionData& data)
+{
+    plane.IntersectWithBS(sphere, data);
+    return data.hasCollided;
+}
+
+bool PhysicsEngine::TestPlaneVsAABB(PlaneCollider plane, AABB aabb, IntersectionData& data)
+{
+    plane.IntersectWithAABB(aabb, data);
+    return data.hasCollided;
+}
