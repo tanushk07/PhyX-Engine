@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include "Vector.h"
-#include "core/Rigidbody.h"
+#include "core/RigidBody.h"
 #include "BoundingSphere.h"
 #include "AABB.h"
 #include "PlaneCollider.h"

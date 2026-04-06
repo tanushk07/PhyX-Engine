@@ -19,7 +19,15 @@ set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(raylib)
 
-file(GLOB_RECURSE SOURCES "src/*.cpp")
+set(SOURCES
+    src/main.cpp
+    src/Engine.cpp
+    src/core/RigidBody.cpp
+    src/colliders/AABB.cpp
+    src/colliders/BoundingSphere.cpp
+    src/colliders/PlaneCollider.cpp
+    src/utils/Visualizer.cpp
+)
 
 add_executable(phyX ${SOURCES})
 target_include_directories(phyX PRIVATE src/core src/colliders src/utils)
