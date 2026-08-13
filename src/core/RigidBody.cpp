@@ -2,12 +2,22 @@
 
 void RigidBody::AddForce(Vec3 force)
 {
-    Acceleration += force / Mass;
+    // Acceleration += force / Mass;
+    forceAcc+=force;
 }
 
 void RigidBody::Update(float dt)
 {
-    Velocity += Acceleration * dt;
+    
+    Momentum += forceAcc * dt;
+    Recalculate();
     Position += Velocity * dt;
-    Acceleration = Vec3(0, 0, 0);
+    forceAcc = Vec3(0.f,0.f,0.f);
+}
+
+void RigidBody::Recalculate()
+{
+    inverseMass = 1/Mass;
+    Velocity = Momentum*inverseMass;
+    //Acceleration = Vec3(0, 0, 0);
 }

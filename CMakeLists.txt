@@ -17,12 +17,22 @@ FetchContent_Declare(
 )
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_GAMES OFF CACHE BOOL "" FORCE)
+set(CUSTOMIZE_BUILD ON CACHE BOOL "" FORCE)
+set(USE_AUDIO OFF CACHE BOOL "" FORCE)
+set(SUPPORT_MODULE_RAUDIO OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(raylib)
+
+if(MINGW AND CMAKE_C_COMPILER_VERSION VERSION_LESS 8)
+    target_include_directories(raylib PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/old-mingw-compat"
+    )
+endif()
 
 set(SOURCES
     src/main.cpp
     src/Engine.cpp
     src/core/RigidBody.cpp
+    src/core/Quaternion.h
     src/colliders/AABB.cpp
     src/colliders/BoundingSphere.cpp
     src/colliders/PlaneCollider.cpp

@@ -1,5 +1,7 @@
 #include "Engine.h"
 
+#include <functional>
+
 void PhysicsEngine::addRigidBody(RigidBody* rb)
 {
     if (rb != nullptr) {
@@ -30,7 +32,11 @@ void PhysicsEngine::ResolvePlaneCollision(RigidBody* rb, BoundingSphere& sphere,
     if (data.hasCollided && rb->Velocity.y < 0)
     {
         rb->Position.y -= data.IntersectionRadius;
-        rb->Velocity.y = -rb->Velocity.y * rb->Restitution;
+        Vec3 NormalVelocity = plane.GetPlaneNormal()*(rb->Velocity.dot(plane.GetPlaneNormal()));
+        Vec3 TangentialVelocity = rb->Velocity - NormalVelocity;
+        Vec3 DampedTangentialVelocity = TangentialVelocity*(1-rb->FrictionCoeff);
+        Vec3 Reflected_NormalVel = -NormalVelocity * rb->Restitution;
+        rb->Momentum = (DampedTangentialVelocity+Reflected_NormalVel)*rb->Mass;
     }
 }
 

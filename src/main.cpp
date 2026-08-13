@@ -19,7 +19,7 @@ int main()
 
     // Rigidbody sphere (gravity + bounce) — far left
     BoundingSphere physicsSphere{Vec3{-20, 8, 0}, 0.6f};
-    RigidBody physicsBody{physicsSphere.getPosition(), 2.0f, 0.82f};
+    RigidBody physicsBody{physicsSphere.getPosition(), 2.0f, Vec3{0, 0, 0}, 0.82f,.3f};
     engine.addRigidBody(&physicsBody);
 
     // --- Test 1: Sphere vs Sphere (x = -10) ---
