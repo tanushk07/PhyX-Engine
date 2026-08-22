@@ -1,50 +1,59 @@
-﻿#pragma once
+#pragma once
 #include <cmath>
 #include "Vector.h"
+#include "Mat3.h"
 
-struct Quaternion
+// Named "Quat", not "Quaternion", on purpose:
+// raylib.h declares `typedef Vector4 Quaternion;` (guarded by RL_QUATERNION_TYPE),
+// so the name collides in any file that sees both headers - e.g. main.cpp.
+// Layouts differ too (raylib is {x,y,z,w}, this is {w,x,y,z}), so aliasing them
+// would corrupt data rather than just fail to compile.
+//
+// HANDEDNESS (verified by phyX_tests): right-handed, matching raylib/OpenGL.
+//   (1,0,0) rotated +90 deg about Y  ->  (0,0,-1)
+struct Quat
 {
     float w;
     Vec3 vector;
 
-    Quaternion(): w(1), vector(0,0,0) {}
-    Quaternion(float _w, Vec3 v) : w(_w), vector(v) {}
-    static Quaternion fromAxisAngle(float angleRad, Vec3 axis) {
+    Quat(): w(1), vector(0,0,0) {}
+    Quat(float _w, Vec3 v) : w(_w), vector(v) {}
+    static Quat fromAxisAngle(float angleRad, Vec3 axis) {
         axis = axis.normalize();
-        return Quaternion(cos(angleRad * 0.5f), axis * sin(angleRad * 0.5f));
+        return Quat(cos(angleRad * 0.5f), axis * sin(angleRad * 0.5f));
     }
-    Quaternion operator+(const Quaternion& other) const
+    Quat operator+(const Quat& other) const
     {
-        return Quaternion(w + other.w,Vec3(vector.x + other.vector.x, vector.y + other.vector.y, vector.z + other.vector.z));
+        return Quat(w + other.w,Vec3(vector.x + other.vector.x, vector.y + other.vector.y, vector.z + other.vector.z));
     }
-    Quaternion operator-(const Quaternion& other) const
+    Quat operator-(const Quat& other) const
     {
-        return Quaternion(w - other.w,Vec3(vector.x - other.vector.x, vector.y - other.vector.y, vector.z - other.vector.z));
+        return Quat(w - other.w,Vec3(vector.x - other.vector.x, vector.y - other.vector.y, vector.z - other.vector.z));
     }
-    Quaternion operator*(const Quaternion& other) const
+    Quat operator*(const Quat& other) const
     {
-        return Quaternion (w*other.w - vector.dot(other.vector),
+        return Quat (w*other.w - vector.dot(other.vector),
                             Vec3(other.vector*w + vector*other.w + (vector.cross(other.vector))));
     }
-    Quaternion operator*(float s) const
+    Quat operator*(float s) const
     {
-        return Quaternion(
+        return Quat(
             w*s,
             vector*s
         );
     }
-    Quaternion inverse() const
+    Quat inverse() const
     {
         float l = w*w + vector.dot(vector);
         return conjugate()/l;
     }
-    Quaternion operator/(const Quaternion& other) const
+    Quat operator/(const Quat& other) const
     {
         return *this * other.inverse();
     }
-    Quaternion operator/(float s) const
+    Quat operator/(float s) const
     {
-        return Quaternion(
+        return Quat(
             w/s,
             vector/s
         );
@@ -53,24 +62,29 @@ struct Quaternion
     {
         return sqrt(w*w + vector.dot(vector));
     }
-    Quaternion normalize() const
+    Quat normalize() const
     {
         float l = length();
         if(l == 0.f)
-            return Quaternion();
-        return Quaternion(w/l,Vec3(vector.x/l,vector.y/l,vector.z/l));
+            return Quat();
+        return Quat(w/l,Vec3(vector.x/l,vector.y/l,vector.z/l));
     }
     
-    Quaternion conjugate() const
+    Quat conjugate() const
     {
-        return Quaternion(
+        return Quat(
             w,-vector);
     }
     
-    Vec3 rotate(Vec3 &p) const
+    Vec3 rotate(const Vec3 &p) const
     {
-        Quaternion pure(0.f,p);
-        Quaternion r = *this *pure*conjugate();
+        Quat pure(0.f,p);
+        Quat r = *this *pure*conjugate();
         return r.vector;
+    }
+    
+    Mat3 ToMatrixReference() const
+    {
+        return Mat3::FromColumns(rotate(Vec3(1,0,0)),rotate(Vec3(0,1,0)),rotate(Vec3(0,0,1)));
     }
 };

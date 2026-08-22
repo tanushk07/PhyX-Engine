@@ -36,7 +36,7 @@ void PhysicsEngine::ResolvePlaneCollision(RigidBody* rb, BoundingSphere& sphere,
         Vec3 TangentialVelocity = rb->Velocity - NormalVelocity;
         Vec3 DampedTangentialVelocity = TangentialVelocity*(1-rb->FrictionCoeff);
         Vec3 Reflected_NormalVel = -NormalVelocity * rb->Restitution;
-        rb->Momentum = (DampedTangentialVelocity+Reflected_NormalVel)*rb->Mass;
+        rb->LinearMomentum = (DampedTangentialVelocity+Reflected_NormalVel)*rb->Mass;
     }
 }
 

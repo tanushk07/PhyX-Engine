@@ -25,3 +25,6 @@ Thumbs.db
 *.pdb
 *.ilk
 *.exp
+
+# Claude chat logs
+chats/

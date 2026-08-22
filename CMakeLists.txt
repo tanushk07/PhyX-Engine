@@ -32,13 +32,22 @@ set(SOURCES
     src/main.cpp
     src/Engine.cpp
     src/core/RigidBody.cpp
+    src/core/RigidBody.h
+    src/core/IntersectionData.h
+    src/core/Vector.h
     src/core/Quaternion.h
     src/colliders/AABB.cpp
     src/colliders/BoundingSphere.cpp
     src/colliders/PlaneCollider.cpp
     src/utils/Visualizer.cpp
+    src/core/Mat3.h
 )
 
 add_executable(phyX ${SOURCES})
 target_include_directories(phyX PRIVATE src/core src/colliders src/utils)
 target_link_libraries(phyX PRIVATE raylib)
+
+# Console-only math sanity checks. No raylib, no window.
+#   cmake --build <build-dir> --target phyX_tests
+add_executable(phyX_tests src/tests/MathTests.cpp)
+target_include_directories(phyX_tests PRIVATE src/core)
