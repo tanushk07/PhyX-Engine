@@ -36,5 +36,10 @@ struct Mat3
             Vec3(r1.dot(t.r0), r1.dot(t.r1), r1.dot(t.r2)),
             Vec3(r2.dot(t.r0), r2.dot(t.r1), r2.dot(t.r2)));
     }
+    Vec3 operator*(const Vec3 &v) const
+    {
+        return Vec3(r0.dot(v), r1.dot(v), r2.dot(v));
+    }
+    
     float determinant() const {return r0.dot(r1.cross(r2));}
 };

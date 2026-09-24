@@ -1,18 +1,39 @@
 #include "Engine.h"
-
 #include <functional>
+#include <iostream>
+#include <memory>
 
-void PhysicsEngine::addRigidBody(RigidBody* rb)
+RigidBody& PhysicsEngine::CreateBody(const BodyDesc& bodyDesc)
 {
-    if (rb != nullptr) {
-        RigidObjects.push_back(rb);
-    }
+    Vec3 InertiaVector= GetInertia(bodyDesc.Shape, bodyDesc.Mass);
+    auto Body = std::make_unique<RigidBody>(
+        bodyDesc.Position,
+        bodyDesc.Mass,
+        bodyDesc.Restitution,
+        InertiaVector,
+        bodyDesc.DynamicFrictionCoeff,
+        bodyDesc.StaticFrictionCoeff,
+        bodyDesc.isDynamic
+    );
+    RigidBody& handle = *Body;
+    Entries.push_back({std::move(Body), bodyDesc.Shape});
+    return handle;
 }
 
 void PhysicsEngine::step(float dt)
 {
-    for (auto d : RigidObjects)
+    IntegrateForces(dt);
+    DetectCollisions();
+    ResolveCollisions();
+}
+
+void PhysicsEngine::IntegrateForces(float dt)
+{
+    if (Entries.empty()) return;
+    
+    for (auto &[d,s] : Entries)
     {
+        if (!d->isDynamic) continue;
         Vec3 gravityForce{
             gravity.x * d->Mass,
             gravity.y * d->Mass,
@@ -24,48 +45,72 @@ void PhysicsEngine::step(float dt)
     }
 }
 
-void PhysicsEngine::ResolvePlaneCollision(RigidBody* rb, BoundingSphere& sphere, PlaneCollider& plane)
+void PhysicsEngine::DetectCollisions()
 {
-    IntersectionData data;
-    plane.IntersectWithBS(sphere, data);
-
-    if (data.hasCollided && rb->Velocity.y < 0)
+    if (Entries.empty()) return;
+    
+    ContactPoints.clear();
+    std::vector<Collider> colliders;                 
+    colliders.reserve(Entries.size());
+    for (auto &[body,shape] : Entries)
     {
-        rb->Position.y -= data.IntersectionRadius;
-        Vec3 NormalVelocity = plane.GetPlaneNormal()*(rb->Velocity.dot(plane.GetPlaneNormal()));
-        Vec3 TangentialVelocity = rb->Velocity - NormalVelocity;
-        Vec3 DampedTangentialVelocity = TangentialVelocity*(1-rb->FrictionCoeff);
-        Vec3 Reflected_NormalVel = -NormalVelocity * rb->Restitution;
-        rb->LinearMomentum = (DampedTangentialVelocity+Reflected_NormalVel)*rb->Mass;
+        const auto collider = MakeCollider(*body,shape);
+        colliders.push_back(collider);
+    }
+    
+    for (int i = 0; i < static_cast<int>(Entries.size()); i++)
+    {
+        for (int j = i+1; j < static_cast<int>(Entries.size()); j++)
+        {
+            auto &[bodyA,shapeA] = Entries[j];
+            auto &[bodyB,shapeB] = Entries[i];
+            IntersectionData Data;
+            std::visit([ &Data](auto& a, auto& b)
+            {
+                Collide(a,b,Data);
+            },colliders[j],colliders[i]);
+            
+            if (!Data.hasCollided) continue;
+            ContactPoints.push_back({bodyA.get(),bodyB.get(),Data});
+        }
     }
 }
-
-bool PhysicsEngine::TestSphereVsSphere(BoundingSphere s1, BoundingSphere s2, IntersectionData& data)
+void PhysicsEngine::ResolveCollisions() const
 {
-    s1.intersection(s2, data);
-    return data.hasCollided;
+    if (Entries.empty() || ContactPoints.empty()) return;
+    
+    for (auto &c : ContactPoints)
+    {
+        if (c.Data.IntersectionDepth <= 0.f || c.Data.IntersectionNormal.lengthsqr() < 1e-12f) continue;
+        auto [bodya, bodyb, data] = c;
+        
+        if (bodya->IsStatic() && bodyb->IsStatic()) continue;
+        if (bodya->IsDynamic() && bodyb->IsDynamic()) continue;
+        auto Dynamic_body = bodya->IsDynamic() == true? bodya : (bodyb->IsDynamic()==true? bodyb:nullptr);
+        Vec3 normal = Dynamic_body == bodya? -c.Data.IntersectionNormal :  c.Data.IntersectionNormal;
+        Dynamic_body->Position += normal* c.Data.IntersectionDepth;
+        
+        if (Dynamic_body->Velocity.dot(normal) <= 0)
+        {
+            Vec3 NormalVelocity = normal*(Dynamic_body->Velocity.dot(normal));
+            Vec3 TangentialVelocity = Dynamic_body->Velocity - NormalVelocity;
+            Vec3 DampedTangentialVelocity = TangentialVelocity*(1-Dynamic_body->StaticFrictionCoeff);
+            Vec3 Reflected_NormalVel = -NormalVelocity * Dynamic_body->Restitution;
+            Dynamic_body->LinearMomentum = (DampedTangentialVelocity+Reflected_NormalVel)*Dynamic_body->Mass;
+            Dynamic_body->Recalculate();
+        }
+    }
 }
-
-bool PhysicsEngine::TestAABBvsAABB(AABB a1, AABB a2, IntersectionData& data)
+Collider PhysicsEngine::MakeCollider(const RigidBody& body, const Shape& shape) const
 {
-    a1.Intersect(a2, data);
-    return data.hasCollided;
-}
-
-bool PhysicsEngine::TestSphereVsAABB(BoundingSphere sphere, AABB aabb, IntersectionData& data)
-{
-    sphere.IntersectWithAABB(aabb, data);
-    return data.hasCollided;
-}
-
-bool PhysicsEngine::TestPlaneVsSphere(PlaneCollider plane, BoundingSphere sphere, IntersectionData& data)
-{
-    plane.IntersectWithBS(sphere, data);
-    return data.hasCollided;
-}
-
-bool PhysicsEngine::TestPlaneVsAABB(PlaneCollider plane, AABB aabb, IntersectionData& data)
-{
-    plane.IntersectWithAABB(aabb, data);
-    return data.hasCollided;
+    return std::visit([&body](const auto& s) -> Collider
+    {
+        using S = std::decay_t<decltype(s)>;
+        if constexpr (std::is_same_v<S, SphereShape>)
+            return BoundingSphere{ body.Position, s.radius };
+        else if constexpr (std::is_same_v<S, BoxShape>)
+            return AABB{ body.Position - s.HalfExtents, body.Position + s.HalfExtents };
+        else
+            return PlaneCollider{ s.Normal, s.offset };
+    }, shape);
 }

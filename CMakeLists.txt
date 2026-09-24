@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14...3.28)
 project(phyX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if(POLICY CMP0135)
@@ -31,6 +31,7 @@ endif()
 set(SOURCES
     src/main.cpp
     src/Engine.cpp
+    src/Engine.h        
     src/core/RigidBody.cpp
     src/core/RigidBody.h
     src/core/IntersectionData.h
@@ -40,7 +41,15 @@ set(SOURCES
     src/colliders/BoundingSphere.cpp
     src/colliders/PlaneCollider.cpp
     src/utils/Visualizer.cpp
+    src/utils/Visualizer.h
+    src/utils/BodyDesc.h
+    src/utils/Shape.h    
+    src/utils/Contact.h
     src/core/Mat3.h
+    src/colliders/AABB.h
+    src/colliders/BoundingSphere.h
+    src/colliders/PlaneCollider.h 
+    src/core/Inertia.h
 )
 
 add_executable(phyX ${SOURCES})

@@ -14,8 +14,7 @@ public:
 		this->Position=Position;
 	}
 
-	void intersection(BoundingSphere other, IntersectionData& Data);
-	void IntersectWithAABB(const class AABB& other, IntersectionData& Data);
+	void Intersect(BoundingSphere other, IntersectionData& Data) const;
 
 	inline const float getRadius() const { return Radius; }
 	inline const Vec3 getPosition() const { return Position; }

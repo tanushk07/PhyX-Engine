@@ -1,7 +1,10 @@
 #pragma once
+#include "Vector.h"
+
 class IntersectionData
 {
 public:
 	bool hasCollided = false;
-	float IntersectionRadius = 0.f;
+	float IntersectionDepth = 0.f;
+	Vec3 IntersectionPoint, IntersectionNormal;
 };

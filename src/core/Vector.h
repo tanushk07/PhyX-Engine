@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+enum Axis {x, y, z };
 
 struct Vec3 {
 	float x, y, z;
@@ -41,6 +42,13 @@ struct Vec3 {
 		z += other.z;
 		return *this;
 	}
+	Vec3& operator-=(const Vec3& other)
+	{
+		x -= other.x;
+		y -= other.y;
+		z -= other.z;
+		return *this;
+	}
 	Vec3 cross(const Vec3& other) const
 	{
 		return Vec3(y * other.z - z * other.y, z * other.x - x * other.z, x * other.y - y * other.x);
@@ -52,7 +60,12 @@ struct Vec3 {
 			x * x + y * y + z * z
 		);
 	}
-
+	float lengthsqr() const
+	{
+		return (
+			x * x + y * y + z * z
+		);
+	}
 	Vec3 normalize() const
 	{
 		float len = length();
@@ -71,8 +84,14 @@ struct Vec3 {
 	}
 	inline float Max(){
 		float maxval = x;
-		if (y > maxval) maxval = y;
-		if (z > maxval) maxval = z;
+		if (y > maxval)
+		{
+			maxval = y;
+		}
+		if(z > maxval)
+		{
+			maxval = z;
+		}
 		return maxval;
 	}
 	inline float Min(){
@@ -80,5 +99,33 @@ struct Vec3 {
 		if (y < minval) minval = y;
 		if (z < minval) minval = z;
 		return minval;
+	}
+	
+	Axis MaxAxis() const
+	{
+		float MaxVal = x;
+		Axis a = Axis::x;
+		if (y > MaxVal)
+		{
+			MaxVal = y;
+			a = Axis::y;
+		}
+		if(z > MaxVal)
+		{
+			a = Axis::z;
+		}
+		return a;
+	}
+	Axis MinAxis() const
+	{
+		float MinVal = x;
+		Axis a = Axis::x;
+		if (y < MinVal)
+		{
+			MinVal = y;
+			a = Axis::y;
+		}
+		if(z < MinVal) a = Axis::z;
+		return a;
 	}
 };

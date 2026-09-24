@@ -54,6 +54,7 @@ void Visualizer::BeginRender() {
 void Visualizer::EndRender() {
     DrawGrid(50, 1.0f);
     EndMode3D();
+    ::DrawFPS(10, 10);
     ::EndDrawing();
 }
 
@@ -93,6 +94,6 @@ void Visualizer::DrawPlaneDebug(Vec3 position, Vec3 normal, float size, Color co
     rlPushMatrix();
         rlTranslatef(position.x, position.y, position.z);
         rlRotatef(angle, rotationAxis.x, rotationAxis.y, rotationAxis.z);
-        DrawPlane(Vector3{0, 0, 0}, Vector2{size, size}, Fade(color, 0.5f));
+        DrawPlane(Vector3{0, 0, 0}, Vector2{size, size}, Fade(color, 1.f));
     rlPopMatrix();
 }

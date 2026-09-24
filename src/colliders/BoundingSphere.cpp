@@ -1,8 +1,7 @@
 #include "BoundingSphere.h"
 #include "AABB.h"
-#include <algorithm>
 
-void BoundingSphere::intersection(BoundingSphere otherSphere, IntersectionData& Data)
+void BoundingSphere::Intersect(BoundingSphere otherSphere, IntersectionData& Data) const
 {
 	Vec3 otherP = otherSphere.Position;
 	float otherR = otherSphere.Radius;
@@ -10,28 +9,10 @@ void BoundingSphere::intersection(BoundingSphere otherSphere, IntersectionData& 
 
 	float centerDistance = (Position - otherP).length();
 	Data.hasCollided = centerDistance < radiusDistance;
-	if (Data.hasCollided) Data.IntersectionRadius = radiusDistance - centerDistance;
-}
-
-void BoundingSphere::IntersectWithAABB(const AABB& other, IntersectionData& Data)
-{
-    Vec3 closestPoint(
-        std::max(other.getMinExtend().x, std::min(Position.x, other.getMaxExtend().x)),
-        std::max(other.getMinExtend().y, std::min(Position.y, other.getMaxExtend().y)),
-        std::max(other.getMinExtend().z, std::min(Position.z, other.getMaxExtend().z))
-    );
-
-    Vec3 diff = Position - closestPoint;
-    float distance = diff.length();
-
-    if (distance < Radius)
-    {
-        Data.hasCollided = true;
-        Data.IntersectionRadius = Radius - distance;
-    }
-    else
-    {
-        Data.hasCollided = false;
-        Data.IntersectionRadius = 0.0f;
-    }
+	if (Data.hasCollided) 
+	{
+		Data.IntersectionDepth = radiusDistance - centerDistance;
+		Data.IntersectionNormal = centerDistance<1e-6f? Vec3{0,1,0} : -(Position - otherP).normalize();
+		Data.IntersectionPoint = Position + Data.IntersectionNormal*(Radius - Data.IntersectionDepth*.5f);
+	}
 }

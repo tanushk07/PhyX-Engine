@@ -13,23 +13,21 @@ void RigidBody::AddForceAtPoint(Vec3 force, Vec3 point)
     forceAcc+=force;
 }
 
-
 void RigidBody::Update(float dt)
 {
-    
     LinearMomentum += forceAcc * dt;
     AngularMomentum += torqueAcc * dt;
+    
     Recalculate();
     Position += Velocity * dt;
     Orientation = (Orientation + Quat(0,AngularVelocity)*Orientation*0.5f*dt).normalize();
-    forceAcc = Vec3(0.f,0.f,0.f);
-    torqueAcc = Vec3(0.f,0.f,0.f);
+    ClearAccumulators();
 }
 
 void RigidBody::Recalculate()
 {
     Velocity = LinearMomentum*inverseMass;
-
+    
     Vec3 Lbody = Orientation.conjugate().rotate(AngularMomentum);
     
     Vec3 wbody(Lbody.x*InvInertiaBody.x,
@@ -38,4 +36,9 @@ void RigidBody::Recalculate()
     
     AngularVelocity = Orientation.rotate(wbody);
     //Acceleration = Vec3(0, 0, 0);
+}
+void RigidBody::ClearAccumulators()
+{
+    forceAcc = Vec3(0.f,0.f,0.f);
+    torqueAcc = Vec3(0.f,0.f,0.f);
 }
