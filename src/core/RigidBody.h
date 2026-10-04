@@ -21,23 +21,22 @@ public:
     // -- CONSTANTS
     float Mass;
     float Restitution;
-    float DynamicFrictionCoeff;
-    float StaticFrictionCoeff;
+    float FrictionCoeff;
+    float RollingResistance = 0.f;    
     Vec3 InertiaBody = Vec3(0.f,0.f,0.f);
-        
     RigidBody(Vec3 position,
               float mass,
               float restitution,
               Vec3 inertiaBody,
-              float DynamicFrictionCoeff,
-              float StaticFrictionCoeff,
+              float FrictionCoeff,
+              float RollingResistance,
               bool isDynamic)
     :   Position(position),
         isDynamic(isDynamic),
         Mass(mass),
         Restitution(restitution),
-        DynamicFrictionCoeff(DynamicFrictionCoeff),
-        StaticFrictionCoeff(StaticFrictionCoeff),
+        FrictionCoeff(FrictionCoeff),
+        RollingResistance(RollingResistance),
         InertiaBody(inertiaBody),
         inverseMass(isDynamic? (mass > 0.f ? 1.f / mass : 0.f):0.f),
         InvInertiaBody(SafeReciprocal(inertiaBody))
@@ -49,6 +48,18 @@ public:
     void AddForceAtPoint(Vec3 force, Vec3 point);
     bool IsStatic() const {return isDynamic==false;}
     bool IsDynamic() const {return isDynamic==true;}
+    float InverseMass() const { return inverseMass; }
+
+    Vec3 InvInertiaWorld(const Vec3& v) const          
+    {
+        const Vec3 b = Orientation.conjugate().rotate(v);                     
+        return Orientation.rotate(Vec3(b.x * InvInertiaBody.x,                
+                                       b.y * InvInertiaBody.y,
+                                       b.z * InvInertiaBody.z));             
+    }
+    
+    Vec3 GetInverseInertiaBody() const {return InvInertiaBody;}
+    
 private:
     // --ACCUMULATORS
     Vec3 forceAcc = Vec3(0.f,0.f,0.f);

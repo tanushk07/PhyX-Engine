@@ -8,7 +8,7 @@ struct BodyDesc
     float Mass;
     float Restitution;
     Shape Shape;
-    float DynamicFrictionCoeff;
-    float StaticFrictionCoeff;
+    float FrictionCoeff;
+    float RollingResistance;
     bool isDynamic;
 };

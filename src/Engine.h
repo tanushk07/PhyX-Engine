@@ -10,8 +10,10 @@
 #include "Shape.h"
 #include "BodyDesc.h"
 #include "Contact.h"
+#include "OBB.h"
+
 template <typename> inline constexpr bool always_false = false;
-using Collider = std::variant<BoundingSphere, AABB, PlaneCollider>;
+using Collider = std::variant<BoundingSphere, AABB, PlaneCollider,OBB>;
 
 struct BodyEntry
 {
@@ -19,13 +21,14 @@ struct BodyEntry
     Shape                      shape;  
 };
 
+
 class PhysicsEngine
 {
-private:
     std::vector<Contact> ContactPoints ;
     Vec3 gravity{0.f, -9.8f, 0};
     static Vec3 GetInertia(const Shape &shape, float mass);
     std::vector<BodyEntry> Entries;
+    
 public:
     void step(float dt);
 
@@ -34,7 +37,7 @@ public:
     void IntegrateForces(float dt);
     void DetectCollisions();
     Collider MakeCollider(const RigidBody& body, const Shape& shape) const;
-    void ResolveCollisions() const;
+    void ResolveCollisions(float dt);
     const std::vector<BodyEntry>& GetEntries() const { return Entries; }
     
     template <typename A, typename B>

@@ -19,6 +19,16 @@ struct BoxShape
         return Inertia::Box(HalfExtents * 2.0f, mass);
     }
 };
+
+struct OBBShape
+{
+    Vec3 HalfExtents;
+    Vec3 CalculateInertia(float mass) const
+    {
+        return Inertia::Box(HalfExtents * 2.0f, mass);
+    }
+};
+
 struct PlaneShape
 {
     Vec3 Normal;
@@ -29,4 +39,5 @@ struct PlaneShape
     }
 };
 
-using Shape = std::variant<SphereShape, BoxShape, PlaneShape>;
+
+using Shape = std::variant<SphereShape, BoxShape, OBBShape, PlaneShape>;

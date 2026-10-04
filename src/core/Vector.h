@@ -31,6 +31,8 @@ struct Vec3 {
 	{
 		return Vec3(s * x, s * y, s * z);
 	}
+	
+	
 	Vec3 operator/(float s) const
 	{
 		return Vec3(x/s, y/s, z/s);

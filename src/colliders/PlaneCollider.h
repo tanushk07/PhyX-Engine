@@ -1,6 +1,7 @@
 #pragma once
 #include "Vector.h"
 #include "BoundingSphere.h"
+#include "OBB.h"
 
 class AABB;
 
@@ -14,6 +15,7 @@ public:
     void Intersect(BoundingSphere other, struct IntersectionData& Data) const;
     void Intersect(const AABB& other, IntersectionData& Data) const;
     void Intersect(const PlaneCollider&, IntersectionData& Data) const;
+    void Intersect(const OBB& other, IntersectionData& Data) const;
 
     inline Vec3 GetPlaneNormal() const { return Normal; }
     inline float GetPlaneOffset() const { return Offset; }

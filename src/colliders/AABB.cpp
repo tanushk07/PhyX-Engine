@@ -12,19 +12,20 @@ void AABB::Intersect(const AABB& other, IntersectionData& Data) const
 	Vec3 BoxBCenter = (other.minExtend + other.maxExtend)/2;
 	auto maxDistance = distance1.Max(distance2);
 	
+	ContactPointData CPD;
 	
 	if (maxDistance.Max() < 0)
 	{
 		Data.hasCollided = true ;
-		Data.IntersectionDepth = fabs(maxDistance.Max());
+		float IntersectionDepth = fabs(maxDistance.Max());
 		const Vec3 lo(	std::max(minExtend.x, other.minExtend.x),
 						std::max(minExtend.y, other.minExtend.y),
 						std::max(minExtend.z, other.minExtend.z));
 		const Vec3 hi(	std::min(maxExtend.x, other.maxExtend.x),
 						std::min(maxExtend.y, other.maxExtend.y),
 						std::min(maxExtend.z, other.maxExtend.z));
-		Data.IntersectionPoint = (lo + hi) * 0.5f;
-		
+		Vec3 IntersectionPoint = (lo + hi) * 0.5f;
+		Data.AddPoint(IntersectionPoint, IntersectionDepth);
 		switch (maxDistance.MaxAxis())
 		{
 		case x:
@@ -46,15 +47,15 @@ void AABB::Intersect(const AABB& other, IntersectionData& Data) const
 	else
 	{
 		Data.hasCollided = false;
-		Data.IntersectionDepth = 0.0f;
 	}
+	
 }
 
 void AABB::Intersect(const BoundingSphere& other, IntersectionData& Data) const
 {
 	Vec3 Position = other.getPosition();
 	float Radius = other.getRadius();
-	
+	ContactPointData CPD;
 	bool inside = Position.x >= minExtend.x && Position.x <= maxExtend.x && 
 				  Position.y >= minExtend.y && Position.y <= maxExtend.y && 
 				  Position.z >= minExtend.z && Position.z <= maxExtend.z;
@@ -70,8 +71,11 @@ void AABB::Intersect(const BoundingSphere& other, IntersectionData& Data) const
 
 		Data.hasCollided        = true;
 		Data.IntersectionNormal = n;                  // box -> sphere, matches "this -> other"
-		Data.IntersectionDepth  = Radius + best;      // out of the box, then clear its own radius
-		Data.IntersectionPoint  = Position + n * best;  // the centre projected onto that face
+		float IntersectionDepth  = Radius + best;      // out of the box, then clear its own radius
+		Vec3 IntersectionPoint  = Position + n * best;  // the centre projected onto that face
+		
+		Data.AddPoint(IntersectionPoint, IntersectionDepth);
+		
 		return;
 	}
 	
@@ -88,13 +92,14 @@ void AABB::Intersect(const BoundingSphere& other, IntersectionData& Data) const
 	if (distance < Radius)
 	{
 		Data.hasCollided = true;
-		Data.IntersectionDepth = Radius - distance;
+		float IntersectionDepth = Radius - distance;
 		Data.IntersectionNormal = diff.normalize();
-		Data.IntersectionPoint = closestPoint;
+		Vec3 IntersectionPoint = closestPoint;
+		Data.AddPoint(IntersectionPoint, IntersectionDepth);
 	}
 	else
 	{
 		Data.hasCollided = false;
-		Data.IntersectionDepth = 0.0f;
 	}
+	
 }

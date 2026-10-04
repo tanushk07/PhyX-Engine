@@ -1,9 +1,11 @@
 #include "RigidBody.h"
 
+#include <iostream>
+#include <ostream>
+
 
 void RigidBody::AddForce(Vec3 force)
 {
-    // Acceleration += force / Mass;
     forceAcc+=force;
 }
 
@@ -17,7 +19,6 @@ void RigidBody::Update(float dt)
 {
     LinearMomentum += forceAcc * dt;
     AngularMomentum += torqueAcc * dt;
-    
     Recalculate();
     Position += Velocity * dt;
     Orientation = (Orientation + Quat(0,AngularVelocity)*Orientation*0.5f*dt).normalize();
@@ -35,8 +36,8 @@ void RigidBody::Recalculate()
         Lbody.z*InvInertiaBody.z);
     
     AngularVelocity = Orientation.rotate(wbody);
-    //Acceleration = Vec3(0, 0, 0);
 }
+
 void RigidBody::ClearAccumulators()
 {
     forceAcc = Vec3(0.f,0.f,0.f);

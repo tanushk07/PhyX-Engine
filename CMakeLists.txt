@@ -48,6 +48,8 @@ set(SOURCES
     src/core/Mat3.h
     src/colliders/AABB.h
     src/colliders/BoundingSphere.h
+    src/colliders/OBB.h
+    src/colliders/OBB.cpp
     src/colliders/PlaneCollider.h 
     src/core/Inertia.h
 )
