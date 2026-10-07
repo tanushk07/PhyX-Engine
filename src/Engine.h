@@ -36,6 +36,7 @@ public:
     std::vector<Contact> GetContactPoints(){return ContactPoints;}
     void IntegrateForces(float dt);
     void DetectCollisions();
+    static void CarryOverImpulses(const std::vector<Contact>& previous, Contact& contact);
     Collider MakeCollider(const RigidBody& body, const Shape& shape) const;
     void ResolveCollisions(float dt);
     const std::vector<BodyEntry>& GetEntries() const { return Entries; }

@@ -51,7 +51,8 @@ void PhysicsEngine::DetectCollisions()
 {
     if (Entries.empty()) return;
     
-    ContactPoints.clear();
+    std::vector<Contact> previous;
+    previous.swap(ContactPoints);
     std::vector<Collider> colliders;                 
     colliders.reserve(Entries.size());
     for (auto &[body,shape] : Entries)
@@ -74,7 +75,38 @@ void PhysicsEngine::DetectCollisions()
             
             if (!Data.hasCollided) continue;
             ContactPoints.push_back({bodyA.get(),bodyB.get(),Data});
+            CarryOverImpulses(previous, ContactPoints.back());
         }
+    }
+}
+
+void PhysicsEngine::CarryOverImpulses(const std::vector<Contact>& previous, Contact& contact)
+{
+    constexpr float MatchDistance = 0.05f;
+    constexpr float MinNormalDot  = 0.95f;
+
+    for (const Contact& old : previous)
+    {
+        if (old.BodyA != contact.BodyA || old.BodyB != contact.BodyB) continue;
+        if (old.Data.IntersectionNormal.dot(contact.Data.IntersectionNormal) < MinNormalDot) return;
+
+        const Vec3 n = contact.Data.IntersectionNormal;
+        contact.Data.RollingTotal = old.Data.RollingTotal;
+        for (int i = 0; i < contact.Data.Count; ++i)
+        {
+            ContactPointData& point = contact.Data.Points[i];
+            float bestDistSq = MatchDistance * MatchDistance;
+            for (int k = 0; k < old.Data.Count; ++k)
+            {
+                const ContactPointData& oldPoint = old.Data.Points[k];
+                const float distSq = (oldPoint.IntersectionPoint - point.IntersectionPoint).lengthsqr();
+                if (distSq >= bestDistSq) continue;
+                bestDistSq = distSq;
+                point.NormalImpulseTotal   = oldPoint.NormalImpulseTotal;
+                point.FrictionImpulseTotal = oldPoint.FrictionImpulseTotal - n * oldPoint.FrictionImpulseTotal.dot(n);
+            }
+        }
+        return;
     }
 }
 
@@ -147,9 +179,9 @@ void PhysicsEngine::ResolveCollisions(float dt)
                 // B1. Normal
                 const float vn       = RelVel(bodya, bodyb, r_A, r_B).dot(n);
                 const float k        = K(bodya, bodyb, r_A, r_B, n);
-                const float OldTotal = contactPoint.NormalTotal;
-                contactPoint.NormalTotal = std::max(0.f, OldTotal + (contactPoint.TargetVn - vn) / k);
-                const float j        = contactPoint.NormalTotal - OldTotal;
+                const float OldTotal = contactPoint.NormalImpulseTotal;
+                contactPoint.NormalImpulseTotal = std::max(0.f, OldTotal + (contactPoint.TargetVn - vn) / k);
+                const float j        = contactPoint.NormalImpulseTotal - OldTotal;
                 Apply(bodya, bodyb, r_A, r_B, n * j);
                 
                 // B2. Friction
@@ -160,11 +192,11 @@ void PhysicsEngine::ResolveCollisions(float dt)
                 const float kt = K(bodya, bodyb, r_A, r_B, t);
                 const float jt = -Relative_Velocity.dot(t) / kt;
                 
-                const float MaxFriction = contactPoint.NormalTotal * StaticFriction;
-                Vec3 NewFriction = contactPoint.FrictionTotal + t * jt;
-                if (NewFriction.length() > MaxFriction) NewFriction = NewFriction.normalize() * MaxFriction;
-                Apply(bodya, bodyb, r_A, r_B, NewFriction - contactPoint.FrictionTotal);
-                contactPoint.FrictionTotal = NewFriction;
+                const float MaxFrictionImpulse = contactPoint.NormalImpulseTotal * StaticFriction;
+                Vec3 NewFrictionImpulse = contactPoint.FrictionImpulseTotal + t * jt;
+                if (NewFrictionImpulse.length() > MaxFrictionImpulse) NewFrictionImpulse = NewFrictionImpulse.normalize() * MaxFrictionImpulse;
+                Apply(bodya, bodyb, r_A, r_B, NewFrictionImpulse - contactPoint.FrictionImpulseTotal);
+                contactPoint.FrictionImpulseTotal = NewFrictionImpulse;
             }
             
             // B3. Rolling resistance
@@ -172,7 +204,7 @@ void PhysicsEngine::ResolveCollisions(float dt)
             if (RollingResistance <= 0.f) continue;
             
             float Pressed = 0.f;
-            for (int i = 0; i < c.Data.Count; ++i) Pressed += c.Data.Points[i].NormalTotal;
+            for (int i = 0; i < c.Data.Count; ++i) Pressed += c.Data.Points[i].NormalImpulseTotal;
             
             const Vec3  wRel = bodya->AngularVelocity - bodyb->AngularVelocity;
             const float wLen = wRel.length();

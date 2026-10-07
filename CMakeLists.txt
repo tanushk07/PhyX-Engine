@@ -35,8 +35,8 @@ set(SOURCES
     src/core/RigidBody.cpp
     src/core/RigidBody.h
     src/core/IntersectionData.h
-    src/core/Vector.h
-    src/core/Quaternion.h
+    src/Math/Vector.h
+    src/Math/Quaternion.h
     src/colliders/AABB.cpp
     src/colliders/BoundingSphere.cpp
     src/colliders/PlaneCollider.cpp
@@ -45,7 +45,7 @@ set(SOURCES
     src/utils/BodyDesc.h
     src/utils/Shape.h    
     src/utils/Contact.h
-    src/core/Mat3.h
+    src/Math/Mat3.h
     src/colliders/AABB.h
     src/colliders/BoundingSphere.h
     src/colliders/OBB.h
@@ -54,11 +54,20 @@ set(SOURCES
     src/core/Inertia.h
 )
 
+set(Math
+        src/Math/Mat3.h
+        src/Math/Quaternion.h
+        src/Math/Vector.h
+)
+
 add_executable(phyX ${SOURCES})
-target_include_directories(phyX PRIVATE src/core src/colliders src/utils)
+target_include_directories(phyX PRIVATE src/core src/colliders src/utils src/Math)
 target_link_libraries(phyX PRIVATE raylib)
 
 # Console-only math sanity checks. No raylib, no window.
 #   cmake --build <build-dir> --target phyX_tests
 add_executable(phyX_tests src/tests/MathTests.cpp)
-target_include_directories(phyX_tests PRIVATE src/core)
+target_include_directories(phyX_tests PRIVATE src/core src/Math)
+
+add_executable(phyX_Math ${Math})
+set_target_properties(phyX_Math PROPERTIES LINKER_LANGUAGE CXX)

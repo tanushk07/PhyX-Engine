@@ -8,8 +8,8 @@ struct ContactPointData
 	Vec3 IntersectionPoint;
 	float IntersectionDepth;
 	float TargetVn    = 0.f;
-	float NormalTotal = 0.f;
-	Vec3  FrictionTotal;
+	float NormalImpulseTotal = 0.f;
+	Vec3  FrictionImpulseTotal;
 };
 
 class IntersectionData

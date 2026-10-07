@@ -9,20 +9,40 @@ void RigidBody::AddForce(Vec3 force)
     forceAcc+=force;
 }
 
+void RigidBody::IntegrateVelocity(float dt)
+{
+    LinearMomentum += forceAcc * dt;
+    AngularMomentum += torqueAcc * dt;
+    Recalculate();
+    ClearAccumulators();
+}
+
+void RigidBody::IntegratePosition(float dt)
+{
+    Position += Velocity * dt;
+    Orientation = (Orientation + Quat(0,AngularVelocity)*Orientation*0.5f*dt).normalize();
+}
+
 void RigidBody::AddForceAtPoint(Vec3 force, Vec3 point)
 {
     torqueAcc+= (point-Position).cross(force) ;
     forceAcc+=force;
 }
 
+void RigidBody::Sleep()
+{
+    Awake = false;
+    SleepTime = 0.f;
+    LinearMomentum = Vec3(0.f,0.f,0.f);
+    AngularMomentum = Vec3(0.f,0.f,0.f);
+    Recalculate();
+    ClearAccumulators();
+}
+
 void RigidBody::Update(float dt)
 {
-    LinearMomentum += forceAcc * dt;
-    AngularMomentum += torqueAcc * dt;
-    Recalculate();
-    Position += Velocity * dt;
-    Orientation = (Orientation + Quat(0,AngularVelocity)*Orientation*0.5f*dt).normalize();
-    ClearAccumulators();
+    IntegrateVelocity(dt);
+    IntegratePosition(dt);
 }
 
 void RigidBody::Recalculate()

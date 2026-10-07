@@ -39,10 +39,12 @@ public:
         RollingResistance(RollingResistance),
         InertiaBody(inertiaBody),
         inverseMass(isDynamic? (mass > 0.f ? 1.f / mass : 0.f):0.f),
-        InvInertiaBody(SafeReciprocal(inertiaBody))
+        InvInertiaBody(isDynamic ? SafeReciprocal(inertiaBody):Vec3{0,0,0})
     {}
     
     void AddForce(Vec3 force);
+    void IntegrateVelocity(float dt);
+    void IntegratePosition(float dt);
     void Update(float dt);
     void Recalculate();
     void AddForceAtPoint(Vec3 force, Vec3 point);
@@ -59,7 +61,10 @@ public:
     }
     
     Vec3 GetInverseInertiaBody() const {return InvInertiaBody;}
-    
+    bool IsAwake() const { return Awake; }
+    void WakeUp() { if (!Awake) { Awake = true; SleepTime = 0.f; } }
+    void Sleep();
+    float SleepTime = 0.f;
 private:
     // --ACCUMULATORS
     Vec3 forceAcc = Vec3(0.f,0.f,0.f);
@@ -76,6 +81,6 @@ private:
                     v.y > 0.f ? 1.f/v.y : 0.f,
                     v.z > 0.f ? 1.f/v.z : 0.f);
     }
-    
+    bool Awake = true;
     void ClearAccumulators();
 };
