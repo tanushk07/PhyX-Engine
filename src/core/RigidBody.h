@@ -50,10 +50,11 @@ public:
     void AddForceAtPoint(Vec3 force, Vec3 point);
     bool IsStatic() const {return isDynamic==false;}
     bool IsDynamic() const {return isDynamic==true;}
-    float InverseMass() const { return inverseMass; }
+    float InverseMass() const { return Awake ? inverseMass : 0.f; }
 
     Vec3 InvInertiaWorld(const Vec3& v) const          
     {
+        if (!Awake) return Vec3(0.f,0.f,0.f);
         const Vec3 b = Orientation.conjugate().rotate(v);                     
         return Orientation.rotate(Vec3(b.x * InvInertiaBody.x,                
                                        b.y * InvInertiaBody.y,
@@ -64,6 +65,8 @@ public:
     bool IsAwake() const { return Awake; }
     void WakeUp() { if (!Awake) { Awake = true; SleepTime = 0.f; } }
     void Sleep();
+    bool CanMove() const { return isDynamic && Awake; }
+    bool MovedLastStep() const { return CanMove() && SleepTime == 0.f; }
     float SleepTime = 0.f;
 private:
     // --ACCUMULATORS

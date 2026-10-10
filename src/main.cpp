@@ -28,9 +28,9 @@ static void DrawBody(Visualizer& vis, const BodyEntry& entry)
     {
         using S = std::decay_t<decltype(s)>;
         if constexpr (std::is_same_v<S, SphereShape>)
-            vis.DrawSphereDebug(p, s.radius, PURPLE);
+            vis.DrawSphereDebug(p, s.radius, body.IsAwake() ? PURPLE : GRAY);
         else if constexpr (std::is_same_v<S, BoxShape> || std::is_same_v<S, OBBShape>)
-            vis.DrawBoxDebug(p, s.HalfExtents, body.Orientation, LIME);
+            vis.DrawBoxDebug(p, s.HalfExtents, body.Orientation, body.IsAwake() ? LIME : GRAY);
         else if constexpr (std::is_same_v<S, PlaneShape>)
             vis.DrawPlaneDebug(p, s.Normal, 40.0f, Fade(DARKGRAY, 0.25f));
         else

@@ -6,6 +6,7 @@
 
 void RigidBody::AddForce(Vec3 force)
 {
+    WakeUp();
     forceAcc+=force;
 }
 
@@ -25,6 +26,7 @@ void RigidBody::IntegratePosition(float dt)
 
 void RigidBody::AddForceAtPoint(Vec3 force, Vec3 point)
 {
+    WakeUp();
     torqueAcc+= (point-Position).cross(force) ;
     forceAcc+=force;
 }

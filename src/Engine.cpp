@@ -21,13 +21,43 @@ RigidBody& PhysicsEngine::CreateBody(const BodyDesc& bodyDesc)
     Entries.push_back({std::move(Body), bodyDesc.Shape});
     return handle;
 }
-
+/*
 void PhysicsEngine::step(float dt)
 {
-    IntegrateForces(dt);
+    IntegrateVelocities(dt);
     DetectCollisions();
     ResolveCollisions(dt);
+    IntegratePositions(dt);
+}*/
+void PhysicsEngine::step(float dt)
+{
+    IntegrateVelocities(dt);
+    DetectCollisions();
+    WakeTouchedBodies();
+    ResolveCollisions(dt);
+    IntegratePositions(dt);
+    UpdateSleep(dt);
 }
+
+void PhysicsEngine::IntegrateVelocities(float dt)
+{
+    for (auto &[d,s] : Entries)
+    {
+        if (!d->CanMove()) continue;
+        d->AddForce(gravity * d->Mass);
+        d->IntegrateVelocity(dt);
+    }
+}
+
+void PhysicsEngine::IntegratePositions(float dt)
+{
+    for (auto &[d,s] : Entries)
+    {
+        if (!d->CanMove()) continue;
+        d->IntegratePosition(dt);
+    }
+}
+
 
 void PhysicsEngine::IntegrateForces(float dt)
 {
@@ -130,16 +160,20 @@ void PhysicsEngine::ResolveCollisions(float dt)
     };
     auto Apply = [](RigidBody* A, RigidBody* B, const Vec3& rA, const Vec3& rB, const Vec3& J)
     {
-        A->LinearMomentum  += J;            B->LinearMomentum  -= J;
-        A->AngularMomentum += rA.cross(J);  B->AngularMomentum -= rB.cross(J);
-        A->Recalculate();                   B->Recalculate();
+        if (A->CanMove()) { A->LinearMomentum += J; A->AngularMomentum += rA.cross(J); A->Recalculate(); }
+        if (B->CanMove()) { B->LinearMomentum -= J; B->AngularMomentum -= rB.cross(J); B->Recalculate(); }
+    };
+    auto ApplyAngular = [](RigidBody* A, RigidBody* B, const Vec3& J)
+    {
+        if (A->CanMove()) { A->AngularMomentum += J; A->Recalculate(); }
+        if (B->CanMove()) { B->AngularMomentum -= J; B->Recalculate(); }
     };
         
     for (auto &c : ContactPoints)
     {
         RigidBody* bodya = c.BodyA;
         RigidBody* bodyb = c.BodyB;
-        if (bodya->IsStatic() && bodyb->IsStatic()) continue;
+        if (!bodya->CanMove() && !bodyb->CanMove()) continue;
         if (c.Data.IntersectionNormal.lengthsqr() < 1e-12f) continue;
         Vec3 n = -c.Data.IntersectionNormal; //n goes from b to a
         const float Restitution = std::min(bodya->Restitution, bodyb->Restitution);
@@ -156,13 +190,32 @@ void PhysicsEngine::ResolveCollisions(float dt)
         }
     }
     
+    //to be understood
+    for (auto &c : ContactPoints)
+    {
+        RigidBody* bodya = c.BodyA;
+        RigidBody* bodyb = c.BodyB;
+        if (!bodya->CanMove() && !bodyb->CanMove()) continue;
+        if (c.Data.IntersectionNormal.lengthsqr() < 1e-12f) continue;
+        const Vec3 n = -c.Data.IntersectionNormal;
+        for (int i = 0; i < c.Data.Count; ++i)
+        {
+            const auto &contactPoint = c.Data.Points[i];
+            const auto r_A = contactPoint.IntersectionPoint - bodya->Position;
+            const auto r_B = contactPoint.IntersectionPoint - bodyb->Position;
+            Apply(bodya, bodyb, r_A, r_B, n * contactPoint.NormalImpulseTotal + contactPoint.FrictionImpulseTotal);
+        }
+        ApplyAngular(bodya, bodyb, c.Data.RollingTotal);
+    }
+    
+    
     for (int pass = 0; pass < Iterations; ++pass)
     {
         for (auto &c : ContactPoints)
         {
             RigidBody* bodya = c.BodyA;
             RigidBody* bodyb = c.BodyB;
-            if (bodya->IsStatic() && bodyb->IsStatic()) continue;
+            if (!bodya->CanMove() && !bodyb->CanMove()) continue;
             if (c.Data.IntersectionNormal.lengthsqr() < 1e-12f) continue;
             
             const Vec3  n              = -c.Data.IntersectionNormal;
@@ -217,10 +270,7 @@ void PhysicsEngine::ResolveCollisions(float dt)
             Vec3 NewRolling = c.Data.RollingTotal - axis * (wLen / kr);
             if (NewRolling.length() > MaxRolling) NewRolling = NewRolling.normalize() * MaxRolling;
             const Vec3 jr = NewRolling - c.Data.RollingTotal;
-            bodya->AngularMomentum += jr;
-            bodyb->AngularMomentum -= jr;
-            bodya->Recalculate();
-            bodyb->Recalculate();
+            ApplyAngular(bodya, bodyb, jr);
             c.Data.RollingTotal = NewRolling;
         }        
     }    
@@ -241,4 +291,32 @@ Collider PhysicsEngine::MakeCollider(const RigidBody& body, const Shape& shape) 
         else
             return PlaneCollider{ s.Normal, s.offset };
     }, shape);
+}
+
+
+void PhysicsEngine::WakeTouchedBodies() const
+{
+    for (const Contact& c : ContactPoints)
+    {
+        if (c.BodyA->IsDynamic() && !c.BodyA->IsAwake() && c.BodyB->MovedLastStep()) c.BodyA->WakeUp();
+        if (c.BodyB->IsDynamic() && !c.BodyB->IsAwake() && c.BodyA->MovedLastStep()) c.BodyB->WakeUp();
+    }
+}
+
+void PhysicsEngine::UpdateSleep(float dt)
+{
+    if (!SleepingEnabled) return;
+
+    constexpr float LinearSleepTolerance  = 0.01f;     // m/s
+    constexpr float AngularSleepTolerance = 0.0349f;   // rad/s (2 degrees per second)
+    constexpr float TimeToSleep           = 0.5f;      // s
+
+    for (auto &[b,s] : Entries)
+    {
+        if (!b->CanMove()) continue;
+        const bool still = b->Velocity.lengthsqr()        < LinearSleepTolerance  * LinearSleepTolerance
+                        && b->AngularVelocity.lengthsqr() < AngularSleepTolerance * AngularSleepTolerance;
+        b->SleepTime = still ? b->SleepTime + dt : 0.f;
+        if (b->SleepTime >= TimeToSleep) b->Sleep();
+    }
 }

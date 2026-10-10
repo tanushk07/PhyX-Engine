@@ -28,13 +28,20 @@ class PhysicsEngine
     Vec3 gravity{0.f, -9.8f, 0};
     static Vec3 GetInertia(const Shape &shape, float mass);
     std::vector<BodyEntry> Entries;
-    
+    bool SleepingEnabled = true;
 public:
     void step(float dt);
 
     RigidBody& CreateBody(const BodyDesc& bodyDesc);
     std::vector<Contact> GetContactPoints(){return ContactPoints;}
     void IntegrateForces(float dt);
+    void IntegrateVelocities(float dt);
+    void IntegratePositions(float dt);
+    
+    void WakeTouchedBodies() const;
+    void UpdateSleep(float dt);
+    void SetSleepingEnabled(bool enabled) { SleepingEnabled = enabled; }
+    
     void DetectCollisions();
     static void CarryOverImpulses(const std::vector<Contact>& previous, Contact& contact);
     Collider MakeCollider(const RigidBody& body, const Shape& shape) const;

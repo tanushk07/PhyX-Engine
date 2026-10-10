@@ -12,7 +12,7 @@ class PlaneCollider
 
 public:
     PlaneCollider(Vec3 Normal, float Offset) : Normal(Normal.normalize()), Offset(Offset) {}
-    void Intersect(BoundingSphere other, struct IntersectionData& Data) const;
+    void Intersect(BoundingSphere other, IntersectionData& Data) const;
     void Intersect(const AABB& other, IntersectionData& Data) const;
     void Intersect(const PlaneCollider&, IntersectionData& Data) const;
     void Intersect(const OBB& other, IntersectionData& Data) const;
