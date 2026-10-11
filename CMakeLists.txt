@@ -15,7 +15,11 @@ if(POLICY CMP0135)
 endif()
 
 # ---- phyx_math: Vec3, Quat, Mat3 (headers only)
-add_library(phyx_math INTERFACE)
+add_library(phyx_math INTERFACE
+        src/Math/Vector.h
+        src/Math/Quaternion.h
+        src/Math/Mat3.h
+)
 add_library(phyx::math ALIAS phyx_math)
 target_include_directories(phyx_math INTERFACE src/Math)
 target_compile_features(phyx_math INTERFACE cxx_std_20)
