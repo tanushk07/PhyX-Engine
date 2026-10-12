@@ -2,7 +2,7 @@
 #include <memory>
 #include <vector>
 #include "Vector.h"
-#include "core/RigidBody.h"
+#include "RigidBody.h"
 #include "BoundingSphere.h"
 #include "AABB.h"
 #include "PlaneCollider.h"
@@ -33,7 +33,7 @@ public:
     void step(float dt);
 
     RigidBody& CreateBody(const BodyDesc& bodyDesc);
-    std::vector<Contact> GetContactPoints(){return ContactPoints;}
+    const std::vector<Contact>& GetContactPoints() const { return ContactPoints; }
     void IntegrateForces(float dt);
     void IntegrateVelocities(float dt);
     void IntegratePositions(float dt);
